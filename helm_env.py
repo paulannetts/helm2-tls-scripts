@@ -34,7 +34,26 @@ def helm_install(helm_home_tls, archive_file):
     with tempfile.TemporaryDirectory() as tmpdir:
         with tarfile.open(archive_file, "r") as tar:
             print("Un tar'ing data from {}".format(archive_file))
-            tar.extractall(path=tmpdir)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
+                
+            
+            safe_extract(tar, path=tmpdir)
         tmpdir_path = Path(tmpdir)
         cert_subdir = None
         for ii in tmpdir_path.iterdir():
